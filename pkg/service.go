@@ -5,6 +5,7 @@ import "errors"
 var ErrWordAlreadyRegistered = errors.New("word already registered")
 
 type Word struct {
+	Lang    string
 	Word    string
 	Meaning string
 	Example string
@@ -20,11 +21,11 @@ type service struct {
 	repository WordRepository
 }
 
-func (s *service) AddWord(word, meaning, example string, tags []string) (*Word, error) {
-	if s.repository.HasWord(word) {
+func (s *service) AddWord(lang, word, meaning, example string, tags []string) (*Word, error) {
+	if s.repository.HasWord(lang, word) {
 		return nil, ErrWordAlreadyRegistered
 	}
-	w := Word{word, meaning, example, tags}
+	w := Word{lang, word, meaning, example, tags}
 	return s.repository.AddWord(w)
 }
 

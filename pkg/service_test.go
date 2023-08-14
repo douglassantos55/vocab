@@ -31,22 +31,25 @@ func TestAdd(t *testing.T) {
 		repository := NewFakeRepository()
 		service := pkg.NewService(repository)
 
-		if _, err := service.AddWord("Haus", "house", "Dein Haus ist sauber", []string{"noun"}); err != nil {
-			t.Fatal(err)
+		service.AddWord("German", "Haus", "house", "Dein Haus ist sauber", []string{"noun"})
+		service.AddWord("Spanish", "hola", "hello", "Hola, hombre", []string{"greeting"})
+
+		if !repository.HasWord("German", "Haus") {
+			t.Error("should have word \"Haus\" in German")
 		}
 
-		if !repository.HasWord("Haus") {
-			t.Error("should have word \"Haus\"")
+		if repository.HasWord("Spanish", "Haus") {
+			t.Error("should not have word \"Haus\" in Spanish")
 		}
 	})
 
 	t.Run("repeated", func(t *testing.T) {
 		repository := NewFakeRepository()
-		repository.AddWord(pkg.Word{Word: "Haus"})
+		repository.AddWord(pkg.Word{Lang: "German", Word: "Haus"})
 
 		service := pkg.NewService(repository)
 
-		_, err := service.AddWord("Haus", "house", "Dein Haus ist sauber", []string{"noun"})
+		_, err := service.AddWord("German", "Haus", "house", "Dein Haus ist sauber", []string{"noun"})
 		if err != pkg.ErrWordAlreadyRegistered {
 			t.Errorf("expected error %v, got %v", pkg.ErrWordAlreadyRegistered, err)
 		}
