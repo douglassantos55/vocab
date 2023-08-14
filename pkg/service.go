@@ -12,9 +12,6 @@ type Word struct {
 	Tags    []string
 }
 
-type WordRepository interface {
-	AddWord(word Word) (*Word, error)
-	HasWord(word string) bool
 type Service interface {
 	AddWord(lang, word, meaning, example string, tags []string) (*Word, error)
 }

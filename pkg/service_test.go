@@ -6,29 +6,9 @@ import (
 	"example.com/gocab/pkg"
 )
 
-type fakeRepository struct {
-	data map[string]pkg.Word
-}
-
-func (f *fakeRepository) AddWord(word pkg.Word) (*pkg.Word, error) {
-	f.data[word.Word] = word
-	return &word, nil
-}
-
-func (f *fakeRepository) HasWord(word string) bool {
-	_, found := f.data[word]
-	return found
-}
-
-func NewFakeRepository() *fakeRepository {
-	return &fakeRepository{
-		data: make(map[string]pkg.Word),
-	}
-}
-
 func TestAdd(t *testing.T) {
 	t.Run("add", func(t *testing.T) {
-		repository := NewFakeRepository()
+		repository := pkg.NewInMemoryRepository()
 		service := pkg.NewService(repository)
 
 		service.AddWord("German", "Haus", "house", "Dein Haus ist sauber", []string{"noun"})
@@ -44,7 +24,7 @@ func TestAdd(t *testing.T) {
 	})
 
 	t.Run("repeated", func(t *testing.T) {
-		repository := NewFakeRepository()
+		repository := pkg.NewInMemoryRepository()
 		repository.AddWord(pkg.Word{Lang: "German", Word: "Haus"})
 
 		service := pkg.NewService(repository)
