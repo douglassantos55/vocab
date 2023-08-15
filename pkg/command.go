@@ -8,14 +8,11 @@ import (
 
 type Command interface {
 	Execute(args []string) (any, error)
-	ParseArgs(args []string) (any, error)
 }
 
-type addCommand struct {
-	service Service
-}
+type AddArgsParser func(args []string) (string, string, string, string, []string, error)
 
-func (c *addCommand) ParseArgs(args []string) (any, error) {
+func StdAddArgsParser(args []string) (string, string, string, string, []string, error) {
 	flagset := flag.NewFlagSet("add", flag.ExitOnError)
 
 	lang := flagset.String("lang", "", "foreign language")
@@ -25,31 +22,38 @@ func (c *addCommand) ParseArgs(args []string) (any, error) {
 	example := flagset.String("example", "", "example sentence")
 
 	if err := flagset.Parse(args); err != nil {
-		return nil, err
+		return "", "", "", "", nil, err
 	}
 
 	if *lang == "" {
-		return nil, fmt.Errorf("missing lang")
-	}
-	if *word == "" {
-		return nil, fmt.Errorf("missing word")
-	}
-	if *meaning == "" {
-		return nil, fmt.Errorf("missing meaning")
+		return "", "", "", "", nil, fmt.Errorf("missing lang")
 	}
 
-	return Word{*lang, *word, *meaning, *example, strings.Split(*tags, ",")}, nil
+	if *word == "" {
+		return "", "", "", "", nil, fmt.Errorf("missing word")
+	}
+
+	if *meaning == "" {
+		return "", "", "", "", nil, fmt.Errorf("missing meaning")
+	}
+
+	tagList := strings.Split(*tags, ",")
+	return *lang, *word, *meaning, *example, tagList, nil
+}
+
+type addCommand struct {
+	service Service
+	parser  AddArgsParser
 }
 
 func (c *addCommand) Execute(args []string) (any, error) {
-	values, err := c.ParseArgs(args)
+	lang, word, meaning, example, tags, err := c.parser(args)
 	if err != nil {
 		return nil, err
 	}
-	word := values.(Word)
-	return c.service.AddWord(word.Lang, word.Word, word.Meaning, word.Example, word.Tags)
+	return c.service.AddWord(lang, word, meaning, example, tags)
 }
 
-func CreateAddCommand(service Service) Command {
-	return &addCommand{service}
+func CreateAddCommand(service Service, parser AddArgsParser) Command {
+	return &addCommand{service, parser}
 }

@@ -11,7 +11,7 @@ func TestAddCommand(t *testing.T) {
 	t.Run("add", func(t *testing.T) {
 		expected := &pkg.Word{"german", "Hallo", "Hello", "Hallo, wie gehts", []string{"greetings"}}
 
-		cmd := pkg.CreateAddCommand(pkg.NewService(pkg.NewInMemoryRepository()))
+		cmd := pkg.CreateAddCommand(pkg.NewService(pkg.NewInMemoryRepository()), pkg.StdAddArgsParser)
 
 		received, _ := cmd.Execute([]string{"-lang", "german", "-word", "Hallo", "-meaning", "Hello", "-example", "Hallo, wie gehts", "-tags", "greetings"})
 
@@ -21,7 +21,7 @@ func TestAddCommand(t *testing.T) {
 	})
 
 	t.Run("required", func(t *testing.T) {
-		cmd := pkg.CreateAddCommand(pkg.NewService(pkg.NewInMemoryRepository()))
+		cmd := pkg.CreateAddCommand(pkg.NewService(pkg.NewInMemoryRepository()), pkg.StdAddArgsParser)
 
 		_, err := cmd.Execute([]string{"-word", "Hallo", "-meaning", "Hello", "-example", "Hallo, wie gehts", "-tags", "greetings"})
 		if err.Error() != "missing lang" {
