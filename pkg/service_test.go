@@ -14,11 +14,11 @@ func TestAdd(t *testing.T) {
 		service.AddWord("German", "Haus", "house", "Dein Haus ist sauber", []string{"noun"})
 		service.AddWord("Spanish", "hola", "hello", "Hola, hombre", []string{"greeting"})
 
-		if !repository.HasWord("German", "Haus") {
+		if exists, _ := repository.HasWord("German", "Haus"); !exists {
 			t.Error("should have word \"Haus\" in German")
 		}
 
-		if repository.HasWord("Spanish", "Haus") {
+		if exists, _ := repository.HasWord("Spanish", "Haus"); exists {
 			t.Error("should not have word \"Haus\" in Spanish")
 		}
 	})

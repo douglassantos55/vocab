@@ -21,9 +21,15 @@ type service struct {
 }
 
 func (s *service) AddWord(lang, word, meaning, example string, tags []string) (*Word, error) {
-	if s.repository.HasWord(lang, word) {
+	exists, err := s.repository.HasWord(lang, word)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists {
 		return nil, ErrWordAlreadyRegistered
 	}
+
 	w := Word{lang, word, meaning, example, tags}
 	return s.repository.AddWord(w)
 }
