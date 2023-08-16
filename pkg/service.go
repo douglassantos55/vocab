@@ -34,8 +34,7 @@ func (s *service) AddWord(lang, word, meaning, example string, tags []string) (*
 		return nil, ErrWordAlreadyRegistered
 	}
 
-	w := Word{lang, word, meaning, example, tags}
-	return s.repository.AddWord(w)
+	return s.repository.AddWord(lang, word, meaning, example, tags)
 }
 
 func (s *service) UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error) {
@@ -48,8 +47,7 @@ func (s *service) UpdateWord(lang, word, meaning, example string, tags []string)
 		return nil, ErrWordNotRegistered
 	}
 
-	w := Word{lang, word, meaning, example, tags}
-	return s.repository.UpdateWord(w)
+	return s.repository.UpdateWord(lang, word, meaning, example, tags)
 }
 
 func (s *service) StartQuiz(lang string, topics []string) {

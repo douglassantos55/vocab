@@ -8,9 +8,9 @@ import (
 )
 
 type WordRepository interface {
-	AddWord(word Word) (*Word, error)
-	UpdateWord(word Word) (*Word, error)
 	HasWord(lang, word string) (bool, error)
+	AddWord(lang, word, meaning, example string, tags []string) (*Word, error)
+	UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error)
 }
 
 type InMemoryRepository struct {
@@ -23,21 +23,27 @@ func NewInMemoryRepository() *InMemoryRepository {
 	}
 }
 
-func (r *InMemoryRepository) AddWord(word Word) (*Word, error) {
-	if _, ok := r.words[word.Lang]; !ok {
-		r.words[word.Lang] = make(map[string]Word)
+func (r *InMemoryRepository) AddWord(lang, word, meaning, example string, tags []string) (*Word, error) {
+	if _, ok := r.words[lang]; !ok {
+		r.words[lang] = make(map[string]Word)
 	}
-	r.words[word.Lang][word.Word] = word
-	return &word, nil
+
+	w := Word{lang, word, meaning, example, tags}
+	r.words[lang][word] = w
+
+	return &w, nil
 }
 
-func (r *InMemoryRepository) UpdateWord(word Word) (*Word, error) {
-	words, ok := r.words[word.Lang]
+func (r *InMemoryRepository) UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error) {
+	words, ok := r.words[lang]
 	if !ok {
-		return nil, fmt.Errorf("no lang found: %s", word.Lang)
+		return nil, fmt.Errorf("no lang found: %s", lang)
 	}
-	words[word.Word] = word
-	return &word, nil
+
+	w := Word{lang, word, meaning, example, tags}
+	words[word] = w
+
+	return &w, nil
 }
 
 func (r *InMemoryRepository) HasWord(lang, word string) (bool, error) {
@@ -64,7 +70,7 @@ func (r *SqliteRepository) Close() {
 	r.conn.Close()
 }
 
-func (r *SqliteRepository) AddWord(word Word) (*Word, error) {
+func (r *SqliteRepository) AddWord(lang, word, meaning, example string, tags []string) (*Word, error) {
 	stmt, err := r.conn.Prepare("INSERT INTO words (lang, word, meaning, example) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		return nil, err
@@ -72,26 +78,26 @@ func (r *SqliteRepository) AddWord(word Word) (*Word, error) {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(word.Lang, word.Word, word.Meaning, word.Example)
+	_, err = stmt.Exec(lang, word, meaning, example)
 	if err != nil {
 		return nil, err
 	}
 
-	return &word, nil
+	return &Word{lang, word, meaning, example, tags}, nil
 }
 
-func (r *SqliteRepository) UpdateWord(word Word) (*Word, error) {
+func (r *SqliteRepository) UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error) {
 	stmt, err := r.conn.Prepare("UPDATE words SET meaning = ?, example = ? WHERE lang = ? AND word = ?")
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = stmt.Exec(word.Meaning, word.Example, word.Lang, word.Word)
+	_, err = stmt.Exec(meaning, example, lang, word)
 	if err != nil {
 		return nil, err
 	}
 
-	return &word, nil
+	return &Word{lang, word, meaning, example, tags}, nil
 }
 
 func (r *SqliteRepository) HasWord(lang, word string) (bool, error) {

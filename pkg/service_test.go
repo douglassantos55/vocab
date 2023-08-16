@@ -25,7 +25,7 @@ func TestAdd(t *testing.T) {
 
 	t.Run("repeated", func(t *testing.T) {
 		repository := pkg.NewInMemoryRepository()
-		repository.AddWord(pkg.Word{Lang: "German", Word: "Haus"})
+		repository.AddWord("German", "Haus", "", "", nil)
 
 		service := pkg.NewService(repository)
 
@@ -48,7 +48,7 @@ func TestAdd(t *testing.T) {
 		repository := pkg.NewInMemoryRepository()
 		service := pkg.NewService(repository)
 
-		repository.AddWord(pkg.Word{"german", "Haus", "House", "Mein Haus ist blau", []string{"nouns"}})
+		repository.AddWord("german", "Haus", "House", "Mein Haus ist blau", []string{"nouns"})
 
 		word, err := service.UpdateWord("german", "Haus", "House; Home", "Ich habe ein Haus", []string{"nouns"})
 		if err != nil {
