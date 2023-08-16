@@ -34,4 +34,33 @@ func TestAdd(t *testing.T) {
 			t.Errorf("expected error %v, got %v", pkg.ErrWordAlreadyRegistered, err)
 		}
 	})
+
+	t.Run("update not registered", func(t *testing.T) {
+		repository := pkg.NewInMemoryRepository()
+		service := pkg.NewService(repository)
+
+		if _, err := service.UpdateWord("german", "Haus", "House; Home", "Ich habe ein Haus", []string{"nouns"}); err != pkg.ErrWordNotRegistered {
+			t.Errorf("expected %v, got %v", pkg.ErrWordNotRegistered, err)
+		}
+	})
+
+	t.Run("update", func(t *testing.T) {
+		repository := pkg.NewInMemoryRepository()
+		service := pkg.NewService(repository)
+
+		repository.AddWord(pkg.Word{"german", "Haus", "House", "Mein Haus ist blau", []string{"nouns"}})
+
+		word, err := service.UpdateWord("german", "Haus", "House; Home", "Ich habe ein Haus", []string{"nouns"})
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+
+		if word.Meaning != "House; Home" {
+			t.Errorf("should have updated meaning, got %v", word.Meaning)
+		}
+
+		if word.Example != "Ich habe ein Haus" {
+			t.Errorf("should have updated example, got %v", word.Example)
+		}
+	})
 }

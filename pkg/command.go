@@ -57,3 +57,20 @@ func (c *addCommand) Execute(args []string) (any, error) {
 func CreateAddCommand(service Service, parser AddArgsParser) Command {
 	return &addCommand{service, parser}
 }
+
+type updateCommand struct {
+	service Service
+	parser  AddArgsParser
+}
+
+func CreateUpdateCommand(service Service, parser AddArgsParser) Command {
+	return &updateCommand{service, parser}
+}
+
+func (c *updateCommand) Execute(args []string) (any, error) {
+	lang, word, meaning, example, tags, err := c.parser(args)
+	if err != nil {
+		return nil, err
+	}
+	return c.service.UpdateWord(lang, word, meaning, example, tags)
+}

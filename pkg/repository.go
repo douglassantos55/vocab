@@ -1,10 +1,15 @@
 package pkg
 
-import "database/sql"
-import _ "github.com/mattn/go-sqlite3"
+import (
+	"database/sql"
+	"fmt"
+
+	_ "github.com/mattn/go-sqlite3"
+)
 
 type WordRepository interface {
 	AddWord(word Word) (*Word, error)
+	UpdateWord(word Word) (*Word, error)
 	HasWord(lang, word string) (bool, error)
 }
 
@@ -23,6 +28,15 @@ func (r *InMemoryRepository) AddWord(word Word) (*Word, error) {
 		r.words[word.Lang] = make(map[string]Word)
 	}
 	r.words[word.Lang][word.Word] = word
+	return &word, nil
+}
+
+func (r *InMemoryRepository) UpdateWord(word Word) (*Word, error) {
+	words, ok := r.words[word.Lang]
+	if !ok {
+		return nil, fmt.Errorf("no lang found: %s", word.Lang)
+	}
+	words[word.Word] = word
 	return &word, nil
 }
 
@@ -59,6 +73,20 @@ func (r *SqliteRepository) AddWord(word Word) (*Word, error) {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(word.Lang, word.Word, word.Meaning, word.Example)
+	if err != nil {
+		return nil, err
+	}
+
+	return &word, nil
+}
+
+func (r *SqliteRepository) UpdateWord(word Word) (*Word, error) {
+	stmt, err := r.conn.Prepare("UPDATE words SET meaning = ?, example = ? WHERE lang = ? AND word = ?")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = stmt.Exec(word.Meaning, word.Example, word.Lang, word.Word)
 	if err != nil {
 		return nil, err
 	}
