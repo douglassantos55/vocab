@@ -1,8 +1,10 @@
 package pkg
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -71,15 +73,45 @@ func (r *SqliteRepository) Close() {
 }
 
 func (r *SqliteRepository) AddWord(lang, word, meaning, example string, tags []string) (*Word, error) {
-	stmt, err := r.conn.Prepare("INSERT INTO words (lang, word, meaning, example) VALUES (?, ?, ?, ?)")
+	tx, err := r.conn.BeginTx(context.Background(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt, err := tx.Prepare("INSERT INTO words (lang, word, meaning, example) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		return nil, err
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(lang, word, meaning, example)
+	result, err := stmt.Exec(lang, word, meaning, example)
 	if err != nil {
+		return nil, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	stmt, err = tx.Prepare("INSERT INTO tags (word_id, tag) VALUES (?, ?)")
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	for _, tag := range tags {
+		if _, err := stmt.Exec(id, tag); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
