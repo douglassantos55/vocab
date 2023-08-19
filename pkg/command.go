@@ -1,44 +1,7 @@
 package pkg
 
-import (
-	"flag"
-	"fmt"
-	"strings"
-)
-
 type Command interface {
 	Execute(args []string) (any, error)
-}
-
-type AddArgsParser func(args []string) (string, string, string, string, []string, error)
-
-func StdAddArgsParser(args []string) (string, string, string, string, []string, error) {
-	flagset := flag.NewFlagSet("add", flag.ExitOnError)
-
-	lang := flagset.String("lang", "", "foreign language")
-	word := flagset.String("word", "", "foreign word")
-	meaning := flagset.String("meaning", "", "translation")
-	tags := flagset.String("tags", "", "comma-separated list of tags")
-	example := flagset.String("example", "", "example sentence")
-
-	if err := flagset.Parse(args); err != nil {
-		return "", "", "", "", nil, err
-	}
-
-	if *lang == "" {
-		return "", "", "", "", nil, fmt.Errorf("missing lang")
-	}
-
-	if *word == "" {
-		return "", "", "", "", nil, fmt.Errorf("missing word")
-	}
-
-	if *meaning == "" {
-		return "", "", "", "", nil, fmt.Errorf("missing meaning")
-	}
-
-	tagList := strings.Split(*tags, ",")
-	return *lang, *word, *meaning, *example, tagList, nil
 }
 
 type addCommand struct {
@@ -60,10 +23,10 @@ func CreateAddCommand(service Service, parser AddArgsParser) Command {
 
 type updateCommand struct {
 	service Service
-	parser  AddArgsParser
+	parser  UpdateArgsParser
 }
 
-func CreateUpdateCommand(service Service, parser AddArgsParser) Command {
+func CreateUpdateCommand(service Service, parser UpdateArgsParser) Command {
 	return &updateCommand{service, parser}
 }
 
