@@ -95,19 +95,9 @@ func (r *SqliteRepository) AddWord(lang, word, meaning, example string, tags []s
 		return nil, err
 	}
 
-	tagsStmt, err := tx.Prepare("INSERT INTO tags (word_id, tag) VALUES (?, ?)")
-	if err != nil {
+	if err := r.createTags(tx, id, tags); err != nil {
 		tx.Rollback()
 		return nil, err
-	}
-
-	defer tagsStmt.Close()
-
-	for _, tag := range tags {
-		if _, err := tagsStmt.Exec(id, tag); err != nil {
-			tx.Rollback()
-			return nil, err
-		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -117,48 +107,84 @@ func (r *SqliteRepository) AddWord(lang, word, meaning, example string, tags []s
 	return &Word{lang, word, meaning, example, tags}, nil
 }
 
+func (r *SqliteRepository) createTags(tx *sql.Tx, id int64, tags []string) error {
+	stmt, err := tx.Prepare("INSERT INTO tags (word_id, tag) VALUES (?, ?)")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	for _, tag := range tags {
+		if _, err := stmt.Exec(id, tag); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (r *SqliteRepository) UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	updateStmt, err := tx.Prepare("UPDATE words SET meaning = ?, example = ? WHERE lang = ? AND word = ?")
+	stmt, err := tx.Prepare("UPDATE words SET meaning = ?, example = ? WHERE lang = ? AND word = ?")
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	defer updateStmt.Close()
+	defer stmt.Close()
 
-	_, err = updateStmt.Exec(meaning, example, lang, word)
+	_, err = stmt.Exec(meaning, example, lang, word)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	_, err = tx.Exec("DELETE FROM tags WHERE word_id = (SELECT id FROM words WHERE word = ? AND lang = ?)", word, lang)
-	if err != nil {
+	if err := r.updateTags(tx, lang, word, tags); err != nil {
 		tx.Rollback()
 		return nil, err
-	}
-
-	tagsStmt, err := tx.Prepare("INSERT INTO tags (word_id, tag) SELECT id, ? FROM words WHERE word = ? AND lang = ?")
-	if err != nil {
-		tx.Rollback()
-		return nil, err
-	}
-
-	defer tagsStmt.Close()
-
-	for _, tag := range tags {
-		if _, err := tagsStmt.Exec(tag, word, lang); err != nil {
-			tx.Rollback()
-			return nil, err
-		}
 	}
 
 	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &Word{lang, word, meaning, example, tags}, nil
+}
+
+func (r *SqliteRepository) updateTags(tx *sql.Tx, lang, word string, tags []string) error {
+	_, err := tx.Exec(`
+        DELETE FROM tags
+        WHERE word_id = (SELECT id FROM words WHERE lang = ? AND word = ?)
+    `, lang, word)
+
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare(`
+        INSERT INTO tags (word_id, tag)
+        SELECT id, ? FROM words WHERE lang = ? AND word = ?
+    `)
+
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	for _, tag := range tags {
+		if _, err := stmt.Exec(tag, lang, word); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 		return nil, err
 	}
 
