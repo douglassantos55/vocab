@@ -10,6 +10,7 @@ import (
 
 type WordRepository interface {
 	HasWord(lang, word string) (bool, error)
+	FindWords(lang string, tags []string) ([]*Word, error)
 	AddWord(lang, word, meaning, example string, tags []string) (*Word, error)
 	UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error)
 }
@@ -29,7 +30,7 @@ func (r *InMemoryRepository) AddWord(lang, word, meaning, example string, tags [
 		r.words[lang] = make(map[string]Word)
 	}
 
-	w := Word{lang, word, meaning, example, tags}
+	w := Word{lang, word, meaning, example, tags, 0}
 	r.words[lang][word] = w
 
 	return &w, nil
@@ -41,10 +42,33 @@ func (r *InMemoryRepository) UpdateWord(lang, word, meaning, example string, tag
 		return nil, fmt.Errorf("no lang found: %s", lang)
 	}
 
-	w := Word{lang, word, meaning, example, tags}
+	w := Word{lang, word, meaning, example, tags, 0}
 	words[word] = w
 
 	return &w, nil
+}
+
+func (r *InMemoryRepository) FindWords(lang string, tags []string) ([]*Word, error) {
+	words, ok := r.words[lang]
+	if !ok {
+		return nil, nil
+	}
+
+	found := make([]*Word, 0)
+
+	for _, word := range words {
+	outer:
+		for _, tag := range word.Tags {
+			for _, expected := range tags {
+				if tag == expected {
+					found = append(found, &word)
+					break outer
+				}
+			}
+		}
+	}
+
+	return found, nil
 }
 
 func (r *InMemoryRepository) HasWord(lang, word string) (bool, error) {
@@ -104,7 +128,7 @@ func (r *SqliteRepository) AddWord(lang, word, meaning, example string, tags []s
 		return nil, err
 	}
 
-	return &Word{lang, word, meaning, example, tags}, nil
+	return &Word{lang, word, meaning, example, tags, 0}, nil
 }
 
 func (r *SqliteRepository) createTags(tx *sql.Tx, id int64, tags []string) error {
@@ -153,7 +177,7 @@ func (r *SqliteRepository) UpdateWord(lang, word, meaning, example string, tags 
 		return nil, err
 	}
 
-	return &Word{lang, word, meaning, example, tags}, nil
+	return &Word{lang, word, meaning, example, tags, 0}, nil
 }
 
 func (r *SqliteRepository) updateTags(tx *sql.Tx, lang, word string, tags []string) error {
@@ -185,10 +209,40 @@ func (r *SqliteRepository) updateTags(tx *sql.Tx, lang, word string, tags []stri
 
 	return nil
 }
+
+func (r *SqliteRepository) FindWords(lang string, tags []string) ([]*Word, error) {
+	args := []any{lang}
+	for _, tag := range tags {
+		args = append(args, tag)
+	}
+
+	rows, err := r.conn.Query(`
+        SELECT lang, word, meaning, example, score FROM words
+        WHERE lang = ? AND id IN (SELECT word_id FROM tags WHERE tag IN (?`+strings.Repeat(",?", len(tags)-1)+`))
+        ORDER BY RANDOM()
+    `, args...)
+
+	if err != nil {
 		return nil, err
 	}
 
-	return &Word{lang, word, meaning, example, tags}, nil
+	var words []*Word
+
+	for rows.Next() {
+		var lang string
+		var word string
+		var meaning string
+		var example string
+		var score float64
+
+		if err := rows.Scan(&lang, &word, &meaning, &example, &score); err != nil {
+			return nil, err
+		}
+
+		words = append(words, &Word{lang, word, meaning, example, nil, score})
+	}
+
+	return words, nil
 }
 
 func (r *SqliteRepository) HasWord(lang, word string) (bool, error) {

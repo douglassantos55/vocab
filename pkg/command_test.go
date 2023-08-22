@@ -9,7 +9,7 @@ import (
 
 func TestAddCommand(t *testing.T) {
 	t.Run("add", func(t *testing.T) {
-		expected := &pkg.Word{"german", "Hallo", "Hello", "Hallo, wie gehts", []string{"greetings"}}
+		expected := &pkg.Word{"german", "Hallo", "Hello", "Hallo, wie gehts", []string{"greetings"}, 0}
 
 		cmd := pkg.CreateAddCommand(pkg.NewService(pkg.NewInMemoryRepository()), pkg.StdWordArgsParser)
 

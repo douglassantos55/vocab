@@ -63,4 +63,39 @@ func TestAdd(t *testing.T) {
 			t.Errorf("should have updated example, got %v", word.Example)
 		}
 	})
+
+	t.Run("quiz no words", func(t *testing.T) {
+		repository := pkg.NewInMemoryRepository()
+		service := pkg.NewService(repository)
+
+		words, err := service.CreateQuiz("stormtrooper", []string{"pronoun"})
+
+		if err != pkg.ErrNoWordsFound {
+			t.Errorf("should get error %v, got %v", pkg.ErrNoWordsFound, err)
+		}
+
+		if words != nil {
+			t.Errorf("should not get any words, got %v", words)
+		}
+	})
+
+	t.Run("quiz with words", func(t *testing.T) {
+		repository := pkg.NewInMemoryRepository()
+		service := pkg.NewService(repository)
+
+		repository.AddWord("german", "Er", "He", "Er ist mein Mann", []string{"pronoun"})
+		repository.AddWord("german", "Mann", "Man; Husband", "Mein Mann ist stark", []string{"noun"})
+		repository.AddWord("german", "Frau", "Woman; Wife", "Mein Frau ist schon", []string{"noun"})
+		repository.AddWord("german", "Stark", "Strong", "Mein Mann ist stark", []string{"adjective"})
+
+		words, err := service.CreateQuiz("german", []string{"noun", "pronoun"})
+
+		if err != nil {
+			t.Errorf("should not get error, got %v", err)
+		}
+
+		if len(words) != 3 {
+			t.Errorf("should get %v words, got %v", 3, len(words))
+		}
+	})
 }
