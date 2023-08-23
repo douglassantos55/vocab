@@ -212,15 +212,41 @@ func (r *SqliteRepository) updateTags(tx *sql.Tx, lang, word string, tags []stri
 }
 
 func (r *SqliteRepository) FindWords(lang string, tags []string) ([]*Word, error) {
-	args := []any{lang}
-	for _, tag := range tags {
-		args = append(args, tag)
+	args := make([]any, 0)
+
+	for i := 0; i < 3; i++ {
+		args = append(args, lang)
+		for _, tag := range tags {
+			args = append(args, tag)
+		}
 	}
 
 	rows, err := r.conn.Query(`
-        SELECT lang, word, meaning, example, score FROM words
-        WHERE lang = ? AND id IN (SELECT word_id FROM tags WHERE tag IN (?`+strings.Repeat(",?", len(tags)-1)+`))
-        ORDER BY RANDOM()
+        -- Hard
+        SELECT * FROM (
+            SELECT lang, word, meaning, example, score FROM words
+            WHERE lang = ? AND score = 0 AND id IN (SELECT word_id FROM tags WHERE tag IN (?`+strings.Repeat(",?", len(tags)-1)+`))
+            ORDER BY RANDOM()
+            LIMIT 5
+        )
+        UNION
+
+        -- Medium
+        SELECT * FROM (
+            SELECT lang, word, meaning, example, score FROM words
+            WHERE lang = ? AND score = 0.5 AND id IN (SELECT word_id FROM tags WHERE tag IN (?`+strings.Repeat(",?", len(tags)-1)+`))
+            ORDER BY RANDOM()
+            LIMIT 5
+        )
+        UNION
+
+        -- Easy
+        SELECT * FROM (
+            SELECT lang, word, meaning, example, score FROM words
+            WHERE lang = ? AND score = 1 AND id IN (SELECT word_id FROM tags WHERE tag IN (?`+strings.Repeat(",?", len(tags)-1)+`))
+            ORDER BY RANDOM()
+            LIMIT 5
+        )
     `, args...)
 
 	if err != nil {
@@ -279,8 +305,8 @@ func (r *SqliteRepository) SaveResult(summary *Summary) error {
 	for _, question := range summary.Questions {
 		if question.IsCorrect() {
 			_, err := tx.Exec(`
-                UPDATE words SET score = score + 0.2
-                WHERE lang = ? AND word = ?
+                UPDATE words SET score = score + 0.5
+                WHERE lang = ? AND word = ? AND score < 1
             `, question.Word.Lang, question.Word.Word)
 
 			if err != nil {
@@ -289,8 +315,8 @@ func (r *SqliteRepository) SaveResult(summary *Summary) error {
 			}
 		} else {
 			_, err := tx.Exec(`
-                UPDATE words SET score = score - 0.2
-                WHERE lang = ? AND word = ?
+                UPDATE words SET score = score - 0.5
+                WHERE lang = ? AND word = ? AND score > 0
             `, question.Word.Lang, question.Word.Word)
 
 			if err != nil {
