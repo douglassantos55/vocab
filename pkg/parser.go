@@ -8,6 +8,7 @@ import (
 
 type AddArgsParser func(args []string) (string, string, string, string, []string, error)
 type UpdateArgsParser func(args []string) (string, string, string, string, []string, error)
+type QuizArgsParser func(args []string) (string, []string, error)
 
 func StdWordArgsParser(args []string) (string, string, string, string, []string, error) {
 	flagset := flag.NewFlagSet("add", flag.ExitOnError)
@@ -36,4 +37,21 @@ func StdWordArgsParser(args []string) (string, string, string, string, []string,
 
 	tagList := strings.Split(*tags, ",")
 	return *lang, *word, *meaning, *example, tagList, nil
+}
+
+func StdQuizArgsParser(args []string) (string, []string, error) {
+	flagset := flag.NewFlagSet("quiz", flag.ExitOnError)
+
+	lang := flagset.String("l", "", "foreign language")
+	tags := flagset.String("t", "", "comma-separated list of tags")
+
+	if err := flagset.Parse(args); err != nil {
+		return "", nil, err
+	}
+
+	if *lang == "" {
+		return "", nil, fmt.Errorf("missing lang")
+	}
+
+	return *lang, strings.Split(*tags, ","), nil
 }

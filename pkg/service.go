@@ -15,23 +15,14 @@ var (
 )
 
 type Question struct {
-	Type    int
-	Word    *Word
-	Correct bool
+	Type   int
+	Word   *Word
+	Answer string
 }
 
 func NewQuestion(word *Word) *Question {
 	rand.Seed(time.Now().UnixNano())
 	return &Question{Type: rand.Intn(2), Word: word}
-}
-
-func (q *Question) Answer(word string) bool {
-	if q.Type == 0 {
-		q.Correct = strings.TrimSpace(word) == strings.TrimSpace(q.Word.Word)
-	} else {
-		q.Correct = strings.TrimSpace(word) == strings.TrimSpace(q.Word.Meaning)
-	}
-	return q.Correct
 }
 
 func (q *Question) Text() string {
@@ -42,8 +33,32 @@ func (q *Question) Text() string {
 }
 
 func (q *Question) IsCorrect() bool {
-	return q.Correct
+	if q.Type == 0 {
+		return strings.TrimSpace(q.Answer) == strings.TrimSpace(q.Word.Word)
+	} else {
+		for _, meaning := range strings.Split(q.Word.Meaning, ";") {
+			if strings.TrimSpace(q.Answer) == strings.TrimSpace(meaning) {
+				return true
+			}
+		}
+		return false
+	}
 }
+
+type Summary struct {
+	wrong   []*Question
+	correct []*Question
+	Total   int
+}
+
+func (s *Summary) Correct(question *Question) {
+	s.correct = append(s.correct, question)
+}
+
+func (s *Summary) Wrong(question *Question) {
+	s.wrong = append(s.wrong, question)
+}
+
 type Word struct {
 	Lang    string
 	Word    string
@@ -57,10 +72,15 @@ type Service interface {
 	AddWord(lang, word, meaning, example string, tags []string) (*Word, error)
 	UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error)
 	CreateQuiz(lang string, tags []string) ([]*Question, error)
+	SaveResult(summary *Summary) error
 }
 
 type service struct {
 	repository WordRepository
+}
+
+func NewService(repository WordRepository) *service {
+	return &service{repository}
 }
 
 func (s *service) AddWord(lang, word, meaning, example string, tags []string) (*Word, error) {
@@ -106,8 +126,7 @@ func (s *service) CreateQuiz(lang string, tags []string) ([]*Question, error) {
 
 	return questions, nil
 }
-}
 
-func NewService(repository WordRepository) *service {
-	return &service{repository}
+func (s *service) SaveResult(summary *Summary) error {
+	return nil
 }
