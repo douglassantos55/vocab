@@ -46,17 +46,18 @@ func (q *Question) IsCorrect() bool {
 }
 
 type Summary struct {
-	wrong   []*Question
-	correct []*Question
-	Total   int
+	Total     int
+	Mistakes  int
+	Questions []*Question
 }
 
 func (s *Summary) Correct(question *Question) {
-	s.correct = append(s.correct, question)
+	s.Questions = append(s.Questions, question)
 }
 
 func (s *Summary) Wrong(question *Question) {
-	s.wrong = append(s.wrong, question)
+	s.Mistakes++
+	s.Questions = append(s.Questions, question)
 }
 
 type Word struct {
@@ -128,5 +129,5 @@ func (s *service) CreateQuiz(lang string, tags []string) ([]*Question, error) {
 }
 
 func (s *service) SaveResult(summary *Summary) error {
-	return nil
+	return s.repository.SaveResult(summary)
 }

@@ -13,6 +13,7 @@ type WordRepository interface {
 	FindWords(lang string, tags []string) ([]*Word, error)
 	AddWord(lang, word, meaning, example string, tags []string) (*Word, error)
 	UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error)
+	SaveResult(summary *Summary) error
 }
 
 type InMemoryRepository struct {
@@ -267,4 +268,37 @@ func (r *SqliteRepository) HasWord(lang, word string) (bool, error) {
 	}
 
 	return count > 0, nil
+}
+
+func (r *SqliteRepository) SaveResult(summary *Summary) error {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	for _, question := range summary.Questions {
+		if question.IsCorrect() {
+			_, err := tx.Exec(`
+                UPDATE words SET score = score + 0.2
+                WHERE lang = ? AND word = ?
+            `, question.Word.Lang, question.Word.Word)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		} else {
+			_, err := tx.Exec(`
+                UPDATE words SET score = score - 0.2
+                WHERE lang = ? AND word = ?
+            `, question.Word.Lang, question.Word.Word)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
 }
