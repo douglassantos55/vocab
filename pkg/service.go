@@ -34,10 +34,10 @@ func (q *Question) Text() string {
 
 func (q *Question) IsCorrect() bool {
 	if q.Type == 0 {
-		return strings.TrimSpace(q.Answer) == strings.TrimSpace(q.Word.Word)
+		return strings.TrimSpace(strings.ToLower(q.Answer)) == strings.TrimSpace(strings.ToLower(q.Word.Word))
 	} else {
 		for _, meaning := range strings.Split(q.Word.Meaning, ";") {
-			if strings.TrimSpace(q.Answer) == strings.TrimSpace(meaning) {
+			if strings.TrimSpace(strings.ToLower(q.Answer)) == strings.TrimSpace(strings.ToLower(meaning)) {
 				return true
 			}
 		}
