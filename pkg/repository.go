@@ -58,6 +58,11 @@ func (r *InMemoryRepository) FindWords(lang string, tags []string) ([]*Word, err
 	found := make([]*Word, 0)
 
 	for _, word := range words {
+		if len(tags) == 0 {
+			found = append(found, &word)
+			continue
+		}
+
 	outer:
 		for _, tag := range word.Tags {
 			for _, expected := range tags {
@@ -78,6 +83,10 @@ func (r *InMemoryRepository) HasWord(lang, word string) (bool, error) {
 		return found, nil
 	}
 	return false, nil
+}
+
+func (r *InMemoryRepository) SaveResult(summary *Summary) error {
+	return nil
 }
 
 type SqliteRepository struct {
