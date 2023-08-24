@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"fmt"
+	"bufio"
 	"io"
 )
 
@@ -74,15 +74,19 @@ func (c *quizCommand) Execute(args []string) (any, error) {
 }
 
 func (c *quizCommand) runQuiz(questions []*Question) (*Summary, error) {
+	reader := bufio.NewReader(c.reader)
 	summary := &Summary{Total: len(questions)}
 
 	for _, question := range questions {
 		c.writer.Write([]byte(question.Text()))
 
-		_, err := fmt.Fscanln(c.reader, &question.Answer)
+		answer, err := reader.ReadString('\n')
 		if err != nil {
 			return nil, err
 		}
+
+		// Set question's answer
+		question.Answer = answer
 
 		if question.IsCorrect() {
 			summary.Correct(question)
