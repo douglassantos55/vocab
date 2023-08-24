@@ -43,7 +43,7 @@ func StdQuizArgsParser(args []string) (string, []string, error) {
 	flagset := flag.NewFlagSet("quiz", flag.ExitOnError)
 
 	lang := flagset.String("l", "", "foreign language")
-	tags := flagset.String("t", "", "comma-separated list of tags")
+	tagsStr := flagset.String("t", "", "comma-separated list of tags")
 
 	if err := flagset.Parse(args); err != nil {
 		return "", nil, err
@@ -53,5 +53,12 @@ func StdQuizArgsParser(args []string) (string, []string, error) {
 		return "", nil, fmt.Errorf("missing lang")
 	}
 
-	return *lang, strings.Split(*tags, ","), nil
+	var tags []string
+	for _, tag := range strings.Split(*tagsStr, ",") {
+		if tag != "" {
+			tags = append(tags, tag)
+		}
+	}
+
+	return *lang, tags, nil
 }

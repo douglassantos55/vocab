@@ -212,6 +212,72 @@ func (r *SqliteRepository) updateTags(tx *sql.Tx, lang, word string, tags []stri
 }
 
 func (r *SqliteRepository) FindWords(lang string, tags []string) ([]*Word, error) {
+	var err error
+	var rows *sql.Rows
+
+	if len(tags) > 0 {
+		rows, err = r.findWordsForTags(lang, tags)
+	} else {
+		rows, err = r.findWords(lang)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	var words []*Word
+
+	for rows.Next() {
+		var lang string
+		var word string
+		var meaning string
+		var example string
+		var score float64
+
+		if err := rows.Scan(&lang, &word, &meaning, &example, &score); err != nil {
+			return nil, err
+		}
+
+		words = append(words, &Word{lang, word, meaning, example, nil, score})
+	}
+
+	return words, nil
+}
+
+func (r *SqliteRepository) findWords(lang string) (*sql.Rows, error) {
+	return r.conn.Query(`
+        -- Hard
+        SELECT * FROM (
+            SELECT lang, word, meaning, example, score
+            FROM words
+            WHERE lang = ? AND score = 0
+            ORDER BY RANDOM()
+            LIMIT 5
+        )
+        UNION
+
+        -- Medium
+        SELECT * FROM (
+            SELECT lang, word, meaning, example, score
+            FROM words
+            WHERE lang = ? AND score = 0.5
+            ORDER BY RANDOM()
+            LIMIT 5
+        )
+        UNION
+
+        -- Easy
+        SELECT * FROM (
+            SELECT lang, word, meaning, example, score
+            FROM words
+            WHERE lang = ? AND score = 1
+            ORDER BY RANDOM()
+            LIMIT 5
+        )
+    `, lang, lang, lang)
+}
+
+func (r *SqliteRepository) findWordsForTags(lang string, tags []string) (*sql.Rows, error) {
 	args := make([]any, 0)
 
 	for i := 0; i < 3; i++ {
@@ -221,7 +287,7 @@ func (r *SqliteRepository) FindWords(lang string, tags []string) ([]*Word, error
 		}
 	}
 
-	rows, err := r.conn.Query(`
+	return r.conn.Query(`
         -- Hard
         SELECT * FROM (
             SELECT lang, word, meaning, example, score FROM words
@@ -248,28 +314,6 @@ func (r *SqliteRepository) FindWords(lang string, tags []string) ([]*Word, error
             LIMIT 5
         )
     `, args...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var words []*Word
-
-	for rows.Next() {
-		var lang string
-		var word string
-		var meaning string
-		var example string
-		var score float64
-
-		if err := rows.Scan(&lang, &word, &meaning, &example, &score); err != nil {
-			return nil, err
-		}
-
-		words = append(words, &Word{lang, word, meaning, example, nil, score})
-	}
-
-	return words, nil
 }
 
 func (r *SqliteRepository) HasWord(lang, word string) (bool, error) {
