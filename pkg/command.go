@@ -70,7 +70,11 @@ func (c *quizCommand) Execute(args []string) (any, error) {
 		return nil, err
 	}
 
-	return summary, c.service.SaveResult(summary)
+	if err := c.service.SaveResult(summary); err != nil {
+		return nil, err
+	}
+
+	return summary, nil
 }
 
 func (c *quizCommand) runQuiz(questions []*Question) (*Summary, error) {

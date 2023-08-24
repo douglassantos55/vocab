@@ -60,6 +60,12 @@ func (s *Summary) Wrong(question *Question) {
 	s.Questions = append(s.Questions, question)
 }
 
+func (s *Summary) String() string {
+	correct := s.Total - s.Mistakes
+	performance := 1 - float64(s.Mistakes)/float64(s.Total)
+	return fmt.Sprintf("Performance: %.1f, Total: %d, Correct: %d, Mistakes: %d\n", performance, s.Total, correct, s.Mistakes)
+}
+
 type Word struct {
 	Lang    string
 	Word    string
@@ -67,6 +73,10 @@ type Word struct {
 	Example string
 	Tags    []string
 	Score   float64
+}
+
+func (w *Word) String() string {
+	return fmt.Sprintf("%s [%s]: %s", w.Word, strings.Join(w.Tags, ","), w.Meaning)
 }
 
 type Service interface {

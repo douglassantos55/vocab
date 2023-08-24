@@ -50,7 +50,11 @@ func main() {
 		return
 	}
 
-	if _, err := command.Execute(os.Args[2:]); err != nil {
+	result, err := command.Execute(os.Args[2:])
+	if err != nil {
 		fmt.Println(err)
+		return
 	}
+
+	fmt.Println(result)
 }
