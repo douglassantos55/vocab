@@ -27,9 +27,9 @@ func NewQuestion(word *Word) *Question {
 
 func (q *Question) Text() string {
 	if q.Type == 0 {
-		return fmt.Sprintf("How do you say \"%s\" in %s\n", q.Word.Meaning, q.Word.Lang)
+		return fmt.Sprintf("[%s] How do you say \"%s\" in %s\n", q.Word.Level(), q.Word.Meaning, q.Word.Lang)
 	}
-	return fmt.Sprintf("What does %s mean?\n", q.Word.Word)
+	return fmt.Sprintf("[%s] What does %s mean?\n", q.Word.Level(), q.Word.Word)
 }
 
 func (q *Question) IsCorrect() bool {
@@ -62,8 +62,8 @@ func (s *Summary) Wrong(question *Question) {
 
 func (s *Summary) String() string {
 	correct := s.Total - s.Mistakes
-	performance := 1 - float64(s.Mistakes)/float64(s.Total)
-	return fmt.Sprintf("Performance: %.1f, Total: %d, Correct: %d, Mistakes: %d\n", performance, s.Total, correct, s.Mistakes)
+	performance := (1 - float64(s.Mistakes)/float64(s.Total)) * 100
+	return fmt.Sprintf("\nTotal: %d, Correct: %d, Mistakes: %d, Performance: %.0f%%", s.Total, correct, s.Mistakes, performance)
 }
 
 type Word struct {
@@ -73,6 +73,15 @@ type Word struct {
 	Example string
 	Tags    []string
 	Score   float64
+}
+
+func (w *Word) Level() string {
+	if w.Score < 0.5 {
+		return "Hard"
+	} else if w.Score < 1 {
+		return "Medium"
+	}
+	return "Easy"
 }
 
 func (w *Word) String() string {
