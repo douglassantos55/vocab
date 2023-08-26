@@ -11,8 +11,8 @@ func TestAdd(t *testing.T) {
 		repository := pkg.NewInMemoryRepository()
 		service := pkg.NewService(repository)
 
-		service.AddWord("German", "Haus", "house", "Dein Haus ist sauber", []string{"noun"})
-		service.AddWord("Spanish", "hola", "hello", "Hola, hombre", []string{"greeting"})
+		service.AddWord("German", "Haus", "house", "", "Dein Haus ist sauber", []string{"noun"})
+		service.AddWord("Spanish", "hola", "hello", "", "Hola, hombre", []string{"greeting"})
 
 		if exists, _ := repository.HasWord("German", "Haus"); !exists {
 			t.Error("should have word \"Haus\" in German")
@@ -25,11 +25,11 @@ func TestAdd(t *testing.T) {
 
 	t.Run("repeated", func(t *testing.T) {
 		repository := pkg.NewInMemoryRepository()
-		repository.AddWord("German", "Haus", "", "", nil)
+		repository.AddWord("German", "Haus", "", "", "", nil)
 
 		service := pkg.NewService(repository)
 
-		_, err := service.AddWord("German", "Haus", "house", "Dein Haus ist sauber", []string{"noun"})
+		_, err := service.AddWord("German", "Haus", "house", "", "Dein Haus ist sauber", []string{"noun"})
 		if err != pkg.ErrWordAlreadyRegistered {
 			t.Errorf("expected error %v, got %v", pkg.ErrWordAlreadyRegistered, err)
 		}
@@ -39,7 +39,7 @@ func TestAdd(t *testing.T) {
 		repository := pkg.NewInMemoryRepository()
 		service := pkg.NewService(repository)
 
-		if _, err := service.UpdateWord("german", "Haus", "House; Home", "Ich habe ein Haus", []string{"nouns"}); err != pkg.ErrWordNotRegistered {
+		if _, err := service.UpdateWord("german", "Haus", "House; Home", "", "Ich habe ein Haus", []string{"nouns"}); err != pkg.ErrWordNotRegistered {
 			t.Errorf("expected %v, got %v", pkg.ErrWordNotRegistered, err)
 		}
 	})
@@ -48,9 +48,9 @@ func TestAdd(t *testing.T) {
 		repository := pkg.NewInMemoryRepository()
 		service := pkg.NewService(repository)
 
-		repository.AddWord("german", "Haus", "House", "Mein Haus ist blau", []string{"nouns"})
+		repository.AddWord("german", "Haus", "House", "", "Mein Haus ist blau", []string{"nouns"})
 
-		word, err := service.UpdateWord("german", "Haus", "House; Home", "Ich habe ein Haus", []string{"nouns"})
+		word, err := service.UpdateWord("german", "Haus", "House; Home", "", "Ich habe ein Haus", []string{"nouns"})
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
@@ -83,10 +83,10 @@ func TestAdd(t *testing.T) {
 		repository := pkg.NewInMemoryRepository()
 		service := pkg.NewService(repository)
 
-		repository.AddWord("german", "Er", "He", "Er ist mein Mann", []string{"pronoun"})
-		repository.AddWord("german", "Mann", "Man; Husband", "Mein Mann ist stark", []string{"noun"})
-		repository.AddWord("german", "Frau", "Woman; Wife", "Mein Frau ist schon", []string{"noun"})
-		repository.AddWord("german", "Stark", "Strong", "Mein Mann ist stark", []string{"adjective"})
+		repository.AddWord("german", "Er", "He", "", "Er ist mein Mann", []string{"pronoun"})
+		repository.AddWord("german", "Mann", "Man; Husband", "", "Mein Mann ist stark", []string{"noun"})
+		repository.AddWord("german", "Frau", "Woman; Wife", "", "Mein Frau ist schon", []string{"noun"})
+		repository.AddWord("german", "Stark", "Strong", "", "Mein Mann ist stark", []string{"adjective"})
 
 		words, err := service.CreateQuiz("german", []string{"noun", "pronoun"})
 
@@ -103,10 +103,10 @@ func TestAdd(t *testing.T) {
 		repository := pkg.NewInMemoryRepository()
 		service := pkg.NewService(repository)
 
-		repository.AddWord("german", "Er", "He", "Er ist mein Mann", []string{"pronoun"})
-		repository.AddWord("german", "Mann", "Man; Husband", "Mein Mann ist stark", []string{"noun"})
-		repository.AddWord("german", "Frau", "Woman; Wife", "Mein Frau ist schon", []string{"noun"})
-		repository.AddWord("german", "Stark", "Strong", "Mein Mann ist stark", []string{"adjective"})
+		repository.AddWord("german", "Er", "He", "", "Er ist mein Mann", []string{"pronoun"})
+		repository.AddWord("german", "Mann", "Man; Husband", "", "Mein Mann ist stark", []string{"noun"})
+		repository.AddWord("german", "Frau", "Woman; Wife", "", "Mein Frau ist schon", []string{"noun"})
+		repository.AddWord("german", "Stark", "Strong", "", "Mein Mann ist stark", []string{"adjective"})
 
 		words, err := service.CreateQuiz("german", []string{})
 

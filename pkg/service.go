@@ -63,16 +63,22 @@ func (s *Summary) Wrong(question *Question) {
 func (s *Summary) String() string {
 	correct := s.Total - s.Mistakes
 	performance := (1 - float64(s.Mistakes)/float64(s.Total)) * 100
-	return fmt.Sprintf("\nTotal: %d, Correct: %d, Mistakes: %d, Performance: %.0f%%", s.Total, correct, s.Mistakes, performance)
+	str := "Summary\n"
+	for _, question := range s.Questions {
+		str += fmt.Sprintf("[%t] %s (%s) -> %s\n", question.IsCorrect(), question.Word.Word, question.Word.Meaning, question.Answer)
+	}
+	str += fmt.Sprintf("\nTotal: %d, Correct: %d, Mistakes: %d, Performance: %.0f%%", s.Total, correct, s.Mistakes, performance)
+	return str
 }
 
 type Word struct {
-	Lang    string
-	Word    string
-	Meaning string
-	Example string
-	Tags    []string
-	Score   float64
+	Lang          string
+	Word          string
+	Meaning       string
+	Pronunciation string
+	Example       string
+	Tags          []string
+	Score         float64
 }
 
 func (w *Word) Level() string {
@@ -84,13 +90,9 @@ func (w *Word) Level() string {
 	return "Easy"
 }
 
-func (w *Word) String() string {
-	return fmt.Sprintf("%s [%s]: %s", w.Word, strings.Join(w.Tags, ","), w.Meaning)
-}
-
 type Service interface {
-	AddWord(lang, word, meaning, example string, tags []string) (*Word, error)
-	UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error)
+	AddWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error)
+	UpdateWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error)
 	CreateQuiz(lang string, tags []string) ([]*Question, error)
 	SaveResult(summary *Summary) error
 }
@@ -103,7 +105,7 @@ func NewService(repository WordRepository) *service {
 	return &service{repository}
 }
 
-func (s *service) AddWord(lang, word, meaning, example string, tags []string) (*Word, error) {
+func (s *service) AddWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error) {
 	exists, err := s.repository.HasWord(lang, word)
 	if err != nil {
 		return nil, err
@@ -113,10 +115,10 @@ func (s *service) AddWord(lang, word, meaning, example string, tags []string) (*
 		return nil, ErrWordAlreadyRegistered
 	}
 
-	return s.repository.AddWord(lang, word, meaning, example, tags)
+	return s.repository.AddWord(lang, word, meaning, pronunciation, example, tags)
 }
 
-func (s *service) UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error) {
+func (s *service) UpdateWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error) {
 	exists, err := s.repository.HasWord(lang, word)
 	if err != nil {
 		return nil, err
@@ -126,7 +128,7 @@ func (s *service) UpdateWord(lang, word, meaning, example string, tags []string)
 		return nil, ErrWordNotRegistered
 	}
 
-	return s.repository.UpdateWord(lang, word, meaning, example, tags)
+	return s.repository.UpdateWord(lang, word, meaning, pronunciation, example, tags)
 }
 
 func (s *service) CreateQuiz(lang string, tags []string) ([]*Question, error) {

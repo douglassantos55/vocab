@@ -11,8 +11,8 @@ import (
 type WordRepository interface {
 	HasWord(lang, word string) (bool, error)
 	FindWords(lang string, tags []string) ([]*Word, error)
-	AddWord(lang, word, meaning, example string, tags []string) (*Word, error)
-	UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error)
+	AddWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error)
+	UpdateWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error)
 	SaveResult(summary *Summary) error
 }
 
@@ -26,24 +26,24 @@ func NewInMemoryRepository() *InMemoryRepository {
 	}
 }
 
-func (r *InMemoryRepository) AddWord(lang, word, meaning, example string, tags []string) (*Word, error) {
+func (r *InMemoryRepository) AddWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error) {
 	if _, ok := r.words[lang]; !ok {
 		r.words[lang] = make(map[string]Word)
 	}
 
-	w := Word{lang, word, meaning, example, tags, 0}
+	w := Word{lang, word, meaning, pronunciation, example, tags, 0}
 	r.words[lang][word] = w
 
 	return &w, nil
 }
 
-func (r *InMemoryRepository) UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error) {
+func (r *InMemoryRepository) UpdateWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error) {
 	words, ok := r.words[lang]
 	if !ok {
 		return nil, fmt.Errorf("no lang found: %s", lang)
 	}
 
-	w := Word{lang, word, meaning, example, tags, 0}
+	w := Word{lang, word, meaning, pronunciation, example, tags, 0}
 	words[word] = w
 
 	return &w, nil
@@ -105,20 +105,20 @@ func (r *SqliteRepository) Close() {
 	r.conn.Close()
 }
 
-func (r *SqliteRepository) AddWord(lang, word, meaning, example string, tags []string) (*Word, error) {
+func (r *SqliteRepository) AddWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	insertStmt, err := tx.Prepare("INSERT INTO words (lang, word, meaning, example) VALUES (?, ?, ?, ?)")
+	insertStmt, err := tx.Prepare("INSERT INTO words (lang, word, meaning, pronunciation, example) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		return nil, err
 	}
 
 	defer insertStmt.Close()
 
-	result, err := insertStmt.Exec(lang, word, meaning, example)
+	result, err := insertStmt.Exec(lang, word, meaning, pronunciation, example)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (r *SqliteRepository) AddWord(lang, word, meaning, example string, tags []s
 		return nil, err
 	}
 
-	return &Word{lang, word, meaning, example, tags, 0}, nil
+	return &Word{lang, word, meaning, pronunciation, example, tags, 0}, nil
 }
 
 func (r *SqliteRepository) createTags(tx *sql.Tx, id int64, tags []string) error {
@@ -158,13 +158,13 @@ func (r *SqliteRepository) createTags(tx *sql.Tx, id int64, tags []string) error
 	return nil
 }
 
-func (r *SqliteRepository) UpdateWord(lang, word, meaning, example string, tags []string) (*Word, error) {
+func (r *SqliteRepository) UpdateWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	stmt, err := tx.Prepare("UPDATE words SET meaning = ?, example = ? WHERE lang = ? AND word = ?")
+	stmt, err := tx.Prepare("UPDATE words SET meaning = ?, pronunciation = ?, example = ? WHERE lang = ? AND word = ?")
 	if err != nil {
 		tx.Rollback()
 		return nil, err
@@ -187,7 +187,7 @@ func (r *SqliteRepository) UpdateWord(lang, word, meaning, example string, tags 
 		return nil, err
 	}
 
-	return &Word{lang, word, meaning, example, tags, 0}, nil
+	return &Word{lang, word, meaning, pronunciation, example, tags, 0}, nil
 }
 
 func (r *SqliteRepository) updateTags(tx *sql.Tx, lang, word string, tags []string) error {
@@ -241,13 +241,14 @@ func (r *SqliteRepository) FindWords(lang string, tags []string) ([]*Word, error
 		var word string
 		var meaning string
 		var example string
+		var pronunciation string
 		var score float64
 
-		if err := rows.Scan(&lang, &word, &meaning, &example, &score); err != nil {
+		if err := rows.Scan(&lang, &word, &meaning, &pronunciation, &example, &score); err != nil {
 			return nil, err
 		}
 
-		words = append(words, &Word{lang, word, meaning, example, nil, score})
+		words = append(words, &Word{lang, word, meaning, pronunciation, example, nil, score})
 	}
 
 	return words, nil
@@ -257,7 +258,7 @@ func (r *SqliteRepository) findWords(lang string) (*sql.Rows, error) {
 	return r.conn.Query(`
         -- Hard
         SELECT * FROM (
-            SELECT lang, word, meaning, example, score
+            SELECT lang, word, meaning, pronunciation, example, score
             FROM words
             WHERE lang = ? AND score = 0
             ORDER BY RANDOM()
@@ -267,7 +268,7 @@ func (r *SqliteRepository) findWords(lang string) (*sql.Rows, error) {
 
         -- Medium
         SELECT * FROM (
-            SELECT lang, word, meaning, example, score
+            SELECT lang, word, meaning, pronunciation, example, score
             FROM words
             WHERE lang = ? AND score = 0.5
             ORDER BY RANDOM()
@@ -277,7 +278,7 @@ func (r *SqliteRepository) findWords(lang string) (*sql.Rows, error) {
 
         -- Easy
         SELECT * FROM (
-            SELECT lang, word, meaning, example, score
+            SELECT lang, word, meaning, pronunciation, example, score
             FROM words
             WHERE lang = ? AND score = 1
             ORDER BY RANDOM()
@@ -299,7 +300,7 @@ func (r *SqliteRepository) findWordsForTags(lang string, tags []string) (*sql.Ro
 	return r.conn.Query(`
         -- Hard
         SELECT * FROM (
-            SELECT lang, word, meaning, example, score FROM words
+            SELECT lang, word, meaning, pronunciation, example, score FROM words
             WHERE lang = ? AND score = 0 AND id IN (SELECT word_id FROM tags WHERE tag IN (?`+strings.Repeat(",?", len(tags)-1)+`))
             ORDER BY RANDOM()
             LIMIT 5
@@ -308,7 +309,7 @@ func (r *SqliteRepository) findWordsForTags(lang string, tags []string) (*sql.Ro
 
         -- Medium
         SELECT * FROM (
-            SELECT lang, word, meaning, example, score FROM words
+            SELECT lang, word, meaning, pronunciation, example, score FROM words
             WHERE lang = ? AND score = 0.5 AND id IN (SELECT word_id FROM tags WHERE tag IN (?`+strings.Repeat(",?", len(tags)-1)+`))
             ORDER BY RANDOM()
             LIMIT 5
@@ -317,7 +318,7 @@ func (r *SqliteRepository) findWordsForTags(lang string, tags []string) (*sql.Ro
 
         -- Easy
         SELECT * FROM (
-            SELECT lang, word, meaning, example, score FROM words
+            SELECT lang, word, meaning, pronunciation, example, score FROM words
             WHERE lang = ? AND score = 1 AND id IN (SELECT word_id FROM tags WHERE tag IN (?`+strings.Repeat(",?", len(tags)-1)+`))
             ORDER BY RANDOM()
             LIMIT 5

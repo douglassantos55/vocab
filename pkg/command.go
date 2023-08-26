@@ -6,18 +6,19 @@ import (
 	"io"
 )
 
-type Command interface {
-	Execute(args []string) error
-}
-
-type addCommand struct {
-	service Service
-
+type WordCommand struct {
 	Lang    string   `short:"l" long:"lang" required:"true" description:"foreign language"`
 	Word    string   `short:"w" long:"word" required:"true" description:"foreign word"`
 	Meaning string   `short:"m" long:"meaning" required:"true" description:"translation"`
 	Tags    []string `short:"t" long:"tags" required:"true" description:"topics of the word"`
-	Example string   `short:"e" long:"example" description:"example sentence"`
+
+	Pronunciation string `short:"p" long:"pronunciation" description:"how to pronounce the word"`
+	Example       string `short:"e" long:"example" description:"example sentence"`
+}
+
+type addCommand struct {
+	WordCommand
+	service Service
 }
 
 func CreateAddCommand(service Service) *addCommand {
@@ -25,26 +26,21 @@ func CreateAddCommand(service Service) *addCommand {
 }
 
 func (c *addCommand) Execute(args []string) error {
-	_, err := c.service.AddWord(c.Lang, c.Word, c.Meaning, c.Example, c.Tags)
+	_, err := c.service.AddWord(c.Lang, c.Word, c.Meaning, c.Pronunciation, c.Example, c.Tags)
 	return err
 }
 
 type updateCommand struct {
+	WordCommand
 	service Service
-
-	Lang    string   `short:"l" long:"lang" required:"true" description:"language of the word to update"`
-	Word    string   `short:"w" long:"word" required:"true" description:"word to update"`
-	Meaning string   `short:"m" long:"meaning" required:"true" description:"translation"`
-	Tags    []string `short:"t" long:"tags" required:"true" description:"topics of the word"`
-	Example string   `short:"e" long:"example" description:"example sentence"`
 }
 
-func CreateUpdateCommand(service Service) Command {
+func CreateUpdateCommand(service Service) *updateCommand {
 	return &updateCommand{service: service}
 }
 
 func (c *updateCommand) Execute(args []string) error {
-	_, err := c.service.UpdateWord(c.Lang, c.Word, c.Meaning, c.Example, c.Tags)
+	_, err := c.service.UpdateWord(c.Lang, c.Word, c.Meaning, c.Pronunciation, c.Example, c.Tags)
 	return err
 }
 
@@ -57,7 +53,7 @@ type quizCommand struct {
 	Tags []string `short:"t" long:"tags" description:"topics of the quiz"`
 }
 
-func CreateQuizCommand(service Service, reader io.Reader, writer io.Writer) Command {
+func CreateQuizCommand(service Service, reader io.Reader, writer io.Writer) *quizCommand {
 	return &quizCommand{service: service, reader: reader, writer: writer}
 }
 
