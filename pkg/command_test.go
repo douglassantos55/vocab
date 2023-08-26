@@ -1,41 +1,43 @@
 package pkg_test
 
 import (
-	"reflect"
 	"testing"
 
 	"example.com/gocab/pkg"
+	"github.com/jessevdk/go-flags"
 )
 
 func TestAddCommand(t *testing.T) {
 	t.Run("add", func(t *testing.T) {
-		expected := &pkg.Word{"german", "Hallo", "Hello", "Hallo, wie gehts", []string{"greetings"}, 0}
+		cmd := pkg.CreateAddCommand(pkg.NewService(pkg.NewInMemoryRepository()))
 
-		cmd := pkg.CreateAddCommand(pkg.NewService(pkg.NewInMemoryRepository()), pkg.StdWordArgsParser)
-
-		received, _ := cmd.Execute([]string{"-l", "german", "-w", "Hallo", "-m", "Hello", "-e", "Hallo, wie gehts", "-t", "greetings"})
-
-		if !reflect.DeepEqual(expected, received) {
-			t.Errorf("expected %v, got %v", expected, received)
+		_, err := flags.ParseArgs(cmd, []string{"-l", "german", "-w", "Hallo", "-m", "Hello", "-e", "Hallo, wie gehts", "-t", "greetings"})
+		if err != nil {
+			t.Errorf("should add word, got error %v", err)
 		}
 	})
 
 	t.Run("required", func(t *testing.T) {
-		cmd := pkg.CreateAddCommand(pkg.NewService(pkg.NewInMemoryRepository()), pkg.StdWordArgsParser)
+		cmd := pkg.CreateAddCommand(pkg.NewService(pkg.NewInMemoryRepository()))
 
-		_, err := cmd.Execute([]string{"-w", "Hallo", "-m", "Hello", "-e", "Hallo, wie gehts", "-t", "greetings"})
-		if err.Error() != "missing lang" {
-			t.Errorf("expected error: missing lang, got: %s", err)
+		_, err := flags.ParseArgs(cmd, []string{"-w", "Hallo", "-m", "Hello", "-e", "Hallo, wie gehts", "-t", "greetings"})
+		if err == nil {
+			t.Fatal("should error, no lang provided")
 		}
 
-		_, err = cmd.Execute([]string{"-l", "german", "-m", "Hello", "-e", "Hallo, wie gehts", "-t", "greetings"})
-		if err.Error() != "missing word" {
-			t.Errorf("expected error: missing word, got: %s", err)
+		_, err = flags.ParseArgs(cmd, []string{"-l", "german", "-m", "Hello", "-e", "Hallo, wie gehts", "-t", "greetings"})
+		if err == nil {
+			t.Fatal("should error, no word provided")
 		}
 
-		_, err = cmd.Execute([]string{"-l", "german", "-w", "Hallo", "-e", "Hallo, wie gehts", "-t", "greetings"})
-		if err.Error() != "missing meaning" {
-			t.Errorf("expected error: missing meaning, got: %s", err)
+		_, err = flags.ParseArgs(cmd, []string{"-l", "german", "-w", "Hallo", "-e", "Hallo, wie gehts", "-t", "greetings"})
+		if err == nil {
+			t.Fatal("should error, no meaning provided")
+		}
+
+		_, err = flags.ParseArgs(cmd, []string{"-l", "german", "-w", "Hallo", "-m", "Hello", "-t", "greetings"})
+		if err != nil {
+			t.Fatalf("should not error, got %v", err)
 		}
 	})
 }

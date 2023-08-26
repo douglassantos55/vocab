@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"example.com/gocab/pkg"
+	"github.com/jessevdk/go-flags"
 )
 
 func main() {
@@ -39,22 +40,15 @@ func main() {
 	defer repository.Close()
 	service := pkg.NewService(repository)
 
-	commands := make(map[string]pkg.Command)
-	commands["add"] = pkg.CreateAddCommand(service, pkg.StdWordArgsParser)
-	commands["update"] = pkg.CreateUpdateCommand(service, pkg.StdWordArgsParser)
-	commands["quiz"] = pkg.CreateQuizCommand(service, pkg.StdQuizArgsParser, os.Stdin, os.Stdout)
+	parser := flags.NewNamedParser("gocab", flags.Default)
 
-	command, ok := commands[os.Args[1]]
-	if !ok {
-		fmt.Println("INVALID COMAND")
-		return
-	}
+	addCommand := pkg.CreateAddCommand(service)
+	updateCommand := pkg.CreateUpdateCommand(service)
+	quizCommand := pkg.CreateQuizCommand(service, os.Stdin, os.Stdout)
 
-	result, err := command.Execute(os.Args[2:])
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	parser.AddCommand("add", "add new word", "", addCommand)
+	parser.AddCommand("update", "update word", "", updateCommand)
+	parser.AddCommand("quiz", "start quiz", "", quizCommand)
 
-	fmt.Println(result)
+	parser.Parse()
 }
