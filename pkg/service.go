@@ -29,20 +29,28 @@ func (q *Question) Text() string {
 	if q.Type == 0 {
 		return fmt.Sprintf("[%s] How do you say \"%s\" in %s\n", q.Word.Level(), q.Word.Meaning, q.Word.Lang)
 	}
+
+	if q.Word.Pronunciation != "" {
+		return fmt.Sprintf("[%s] What does %s [%s] mean?\n", q.Word.Level(), q.Word.Word, q.Word.Pronunciation)
+	}
+
 	return fmt.Sprintf("[%s] What does %s mean?\n", q.Word.Level(), q.Word.Word)
 }
 
-func (q *Question) IsCorrect() bool {
+func (q *Question) ExpectedAnswer() string {
 	if q.Type == 0 {
-		return strings.TrimSpace(strings.ToLower(q.Answer)) == strings.TrimSpace(strings.ToLower(q.Word.Word))
-	} else {
-		for _, meaning := range strings.Split(q.Word.Meaning, ";") {
-			if strings.TrimSpace(strings.ToLower(q.Answer)) == strings.TrimSpace(strings.ToLower(meaning)) {
-				return true
-			}
-		}
-		return false
+		return q.Word.Word
 	}
+	return q.Word.Meaning
+}
+
+func (q *Question) IsCorrect() bool {
+	for _, meaning := range strings.Split(q.ExpectedAnswer(), ";") {
+		if strings.TrimSpace(strings.ToLower(q.Answer)) == strings.TrimSpace(strings.ToLower(meaning)) {
+			return true
+		}
+	}
+	return false
 }
 
 type Summary struct {
@@ -63,11 +71,17 @@ func (s *Summary) Wrong(question *Question) {
 func (s *Summary) String() string {
 	correct := s.Total - s.Mistakes
 	performance := (1 - float64(s.Mistakes)/float64(s.Total)) * 100
-	str := "Summary\n"
-	for _, question := range s.Questions {
-		str += fmt.Sprintf("[%t] %s (%s) -> %s\n", question.IsCorrect(), question.Word.Word, question.Word.Meaning, question.Answer)
+
+	str := fmt.Sprintf("\nTotal: %d, Correct: %d, Mistakes: %d, Performance: %.0f%%\n", s.Total, correct, s.Mistakes, performance)
+
+	if s.Mistakes > 0 {
+		for _, question := range s.Questions {
+			if !question.IsCorrect() {
+				str += fmt.Sprintf("%s -> %s\n", strings.TrimSpace(question.Answer), question.ExpectedAnswer())
+			}
+		}
 	}
-	str += fmt.Sprintf("\nTotal: %d, Correct: %d, Mistakes: %d, Performance: %.0f%%", s.Total, correct, s.Mistakes, performance)
+
 	return str
 }
 
