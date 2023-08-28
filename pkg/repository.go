@@ -86,6 +86,24 @@ func (r *InMemoryRepository) HasWord(lang, word string) (bool, error) {
 }
 
 func (r *InMemoryRepository) SaveResult(summary *Summary) error {
+	lang := summary.Questions[0].Word.Lang
+	words, ok := r.words[lang]
+	if !ok {
+		return ErrNoWordsFound
+	}
+
+	for _, question := range summary.Questions {
+		if question.IsCorrect() {
+			if question.Word.Score < 1 {
+				question.Word.Score += 0.5
+			}
+		} else if question.Word.Score > 0 {
+			question.Word.Score -= 0.5
+		}
+
+		words[question.Word.Word] = *question.Word
+	}
+
 	return nil
 }
 

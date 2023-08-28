@@ -82,7 +82,10 @@ func (c *quizCommand) runQuiz(questions []*Question) (*Summary, error) {
 	summary := &Summary{Total: len(questions)}
 
 	for _, question := range questions {
-		c.writer.Write([]byte(question.Text()))
+		_, err := c.writer.Write([]byte(question.Text()))
+		if err != nil {
+			return nil, err
+		}
 
 		answer, err := reader.ReadString('\n')
 		if err != nil {
