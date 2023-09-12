@@ -45,10 +45,12 @@ func main() {
 	addCommand := pkg.CreateAddCommand(service)
 	updateCommand := pkg.CreateUpdateCommand(service)
 	quizCommand := pkg.CreateQuizCommand(service, os.Stdin, os.Stdout)
+	importCommand := pkg.CreateImportCommand(service, os.Stdout)
 
 	parser.AddCommand("add", "add new word", "", addCommand)
 	parser.AddCommand("update", "update word", "", updateCommand)
 	parser.AddCommand("quiz", "start quiz", "", quizCommand)
+	parser.AddCommand("import", "import words", "", importCommand)
 
 	parser.Parse()
 }

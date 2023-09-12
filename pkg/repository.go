@@ -190,7 +190,7 @@ func (r *SqliteRepository) UpdateWord(lang, word, meaning, pronunciation, exampl
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(meaning, example, lang, word)
+	_, err = stmt.Exec(meaning, pronunciation, example, lang, word)
 	if err != nil {
 		tx.Rollback()
 		return nil, err

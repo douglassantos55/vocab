@@ -118,4 +118,102 @@ func TestAdd(t *testing.T) {
 			t.Errorf("should get %v words, got %v", 4, len(words))
 		}
 	})
+
+	t.Run("import same language", func(t *testing.T) {
+		repository := pkg.NewInMemoryRepository()
+		service := pkg.NewService(repository)
+
+		failed := service.ImportWords([]*pkg.Word{
+			{"german", "Hallo", "Hello", "", "Hallo, wie gehts", nil, 0},
+			{"german", "Prost", "Cheers", "", "Prost!", nil, 0},
+			{"german", "Haus", "House", "", "Mein Haus ist weit weg", nil, 0},
+			//{"spanish", "Hombre", "Man", "", "Un belo hombre", nil, 0},
+		})
+
+		if len(failed) != 0 {
+			t.Fatalf("expected no errors, got %v", failed)
+		}
+
+		words, err := repository.FindWords("german", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(words) != 3 {
+			t.Errorf("expected %d words, got %d", 3, len(words))
+		}
+	})
+
+	t.Run("import different languages", func(t *testing.T) {
+		repository := pkg.NewInMemoryRepository()
+		service := pkg.NewService(repository)
+
+		failed := service.ImportWords([]*pkg.Word{
+			{"german", "Hallo", "Hello", "", "Hallo, wie gehts", nil, 0},
+			{"german", "Prost", "Cheers", "", "Prost!", nil, 0},
+			{"german", "Haus", "House", "", "Mein Haus ist weit weg", nil, 0},
+			{"spanish", "Hombre", "Man", "", "Un belo hombre", nil, 0},
+		})
+
+		if len(failed) != 0 {
+			t.Fatalf("expected no errors, got %v", failed)
+		}
+
+		words, err := repository.FindWords("german", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(words) != 3 {
+			t.Errorf("expected %d words, got %d", 3, len(words))
+		}
+
+		words, err = repository.FindWords("spanish", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(words) != 1 {
+			t.Errorf("expected %d words, got %d", 1, len(words))
+		}
+	})
+
+	t.Run("import existing words", func(t *testing.T) {
+		repository := pkg.NewInMemoryRepository()
+		service := pkg.NewService(repository)
+
+		repository.AddWord("german", "Er", "He", "", "Er ist mein Mann", []string{"pronoun"})
+		repository.AddWord("german", "Mann", "Man; Husband", "", "Mein Mann ist stark", []string{"noun"})
+		repository.AddWord("german", "Frau", "Woman; Wife", "", "Mein Frau ist schon", []string{"noun"})
+		repository.AddWord("german", "Stark", "Strong", "", "Mein Mann ist stark", []string{"adjective"})
+
+		failed := service.ImportWords([]*pkg.Word{
+			{"german", "Er", "Hello", "", "Hallo, wie gehts", nil, 0},
+			{"german", "Mann", "Cheers", "", "Prost!", nil, 0},
+			{"german", "Frau", "House", "", "Mein Haus ist weit weg", nil, 0},
+			{"german", "Stark", "Man", "", "Un belo hombre", nil, 0},
+		})
+
+		if len(failed) != 0 {
+			t.Fatalf("expected no errors, got %v", failed)
+		}
+
+		words, err := repository.FindWords("german", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := map[string]string{
+			"Er":    "Hello",
+			"Mann":  "Cheers",
+			"Frau":  "House",
+			"Stark": "Man",
+		}
+
+		for _, word := range words {
+			if expected[word.Word] != word.Meaning {
+				t.Errorf("expected meaning %s for word %s, got %s", expected[word.Word], word.Word, word.Meaning)
+			}
+		}
+	})
 }

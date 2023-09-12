@@ -109,6 +109,7 @@ type Service interface {
 	UpdateWord(lang, word, meaning, pronunciation, example string, tags []string) (*Word, error)
 	CreateQuiz(lang string, tags []string) ([]*Question, error)
 	SaveResult(summary *Summary) error
+	ImportWords(words []*Word) map[string]error
 }
 
 type service struct {
@@ -165,4 +166,26 @@ func (s *service) CreateQuiz(lang string, tags []string) ([]*Question, error) {
 
 func (s *service) SaveResult(summary *Summary) error {
 	return s.repository.SaveResult(summary)
+}
+
+func (s *service) ImportWords(words []*Word) map[string]error {
+	failedWords := make(map[string]error)
+
+	for _, word := range words {
+		exists, err := s.repository.HasWord(word.Lang, word.Word)
+
+		if err == nil {
+			if exists {
+				_, err = s.UpdateWord(word.Lang, word.Word, word.Meaning, word.Pronunciation, word.Example, word.Tags)
+			} else {
+				_, err = s.AddWord(word.Lang, word.Word, word.Meaning, word.Pronunciation, word.Example, word.Tags)
+			}
+		}
+
+		if err != nil {
+			failedWords[word.Word] = err
+		}
+	}
+
+	return failedWords
 }

@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 )
 
 type WordCommand struct {
@@ -103,4 +105,69 @@ func (c *quizCommand) runQuiz(questions []*Question) (*Summary, error) {
 	}
 
 	return summary, nil
+}
+
+type importCommand struct {
+	writer  io.Writer
+	service Service
+
+	Language string `short:"l" long:"lang" required:"true" description:"foreign language"`
+	Filename string `short:"f" long:"file" required:"true" description:"csv file containing words to import"`
+}
+
+func CreateImportCommand(service Service, writer io.Writer) *importCommand {
+	return &importCommand{
+		writer:  writer,
+		service: service,
+	}
+}
+
+func (c *importCommand) Execute(args []string) error {
+	file, err := os.OpenFile(c.Filename, os.O_RDONLY, os.ModeAppend)
+	if err != nil {
+		return err
+	}
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	words := make([]*Word, 0)
+	lines := strings.Split(string(content), "\n")
+	for i, line := range lines {
+		if i > 0 {
+			word, meaning, pronunciation, example, tags := c.parseLine(line)
+			if word == "" {
+				continue
+			}
+
+			words = append(words, &Word{
+				Lang:          c.Language,
+				Word:          word,
+				Meaning:       meaning,
+				Pronunciation: pronunciation,
+				Example:       example,
+				Tags:          strings.Split(tags, ","),
+			})
+		}
+	}
+
+	failed := c.service.ImportWords(words)
+	if len(failed) != 0 {
+		c.writer.Write([]byte("could not import words:\n"))
+		for word, reason := range failed {
+			c.writer.Write([]byte(fmt.Sprintf("%s: %s\n", word, reason)))
+		}
+	}
+
+	return nil
+}
+
+func (c *importCommand) parseLine(line string) (string, string, string, string, string) {
+	parts := strings.Split(line, ";")
+	if len(parts) < 5 {
+		return "", "", "", "", ""
+	}
+	return parts[0], parts[1], parts[2], parts[3], parts[4]
 }
