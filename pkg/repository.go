@@ -282,7 +282,7 @@ func (r *SqliteRepository) findWords(lang string) (*sql.Rows, error) {
             ORDER BY RANDOM()
             LIMIT 5
         )
-        UNION
+        UNION ALL
 
         -- Medium
         SELECT * FROM (
@@ -292,7 +292,7 @@ func (r *SqliteRepository) findWords(lang string) (*sql.Rows, error) {
             ORDER BY RANDOM()
             LIMIT 5
         )
-        UNION
+        UNION ALL
 
         -- Easy
         SELECT * FROM (

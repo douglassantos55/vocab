@@ -14,6 +14,9 @@ var (
 	ErrNoWordsFound          = errors.New("no words found")
 )
 
+const FOREIGN_TO_ENGLISH = 0
+const ENGLISH_TO_FOREIGN = 1
+
 type Question struct {
 	Type   int
 	Word   *Word
@@ -26,7 +29,7 @@ func NewQuestion(word *Word) *Question {
 }
 
 func (q *Question) Text() string {
-	if q.Type == 0 {
+	if q.Type == ENGLISH_TO_FOREIGN {
 		return fmt.Sprintf("[%s] How do you say \"%s\" in %s\n", q.Word.Level(), q.Word.Meaning, q.Word.Lang)
 	}
 
@@ -38,14 +41,14 @@ func (q *Question) Text() string {
 }
 
 func (q *Question) ExpectedAnswer() string {
-	if q.Type == 0 {
+	if q.Type == ENGLISH_TO_FOREIGN {
 		return q.Word.Word
 	}
 	return q.Word.Meaning
 }
 
 func (q *Question) IsCorrect() bool {
-	for _, meaning := range strings.Split(q.ExpectedAnswer(), ";") {
+	for _, meaning := range strings.Split(q.ExpectedAnswer(), ",") {
 		if strings.TrimSpace(strings.ToLower(q.Answer)) == strings.TrimSpace(strings.ToLower(meaning)) {
 			return true
 		}
@@ -77,7 +80,15 @@ func (s *Summary) String() string {
 	if s.Mistakes > 0 {
 		for _, question := range s.Questions {
 			if !question.IsCorrect() {
-				str += fmt.Sprintf("%s -> %s\n", strings.TrimSpace(question.Answer), question.ExpectedAnswer())
+				if question.Type == ENGLISH_TO_FOREIGN {
+					if question.Word.Pronunciation != "" {
+						str += fmt.Sprintf("%s -> %s [%s]\n", strings.TrimSpace(question.Answer), question.ExpectedAnswer(), question.Word.Pronunciation)
+					} else {
+						str += fmt.Sprintf("%s -> %s\n", strings.TrimSpace(question.Answer), question.ExpectedAnswer())
+					}
+				} else {
+					str += fmt.Sprintf("%s -> %s\n", strings.TrimSpace(question.Answer), question.ExpectedAnswer())
+				}
 			}
 		}
 	}
